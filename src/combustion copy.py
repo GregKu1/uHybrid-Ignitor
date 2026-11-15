@@ -95,7 +95,7 @@ def build_species_fractions(species_mass_fractions):
 
 
 # ---------------------------------------------------------------------------
-# main calculation: returns everything in a dict instead of leaving globals
+# main calculation
 # ---------------------------------------------------------------------------
 
 def run_design(cea, Pc, D_orifice, Cd_orifice, T_ambient, OF_start=1, OF_stop=10, OF_step=0.1):
@@ -180,7 +180,7 @@ def plot_results(results):
 
 
 # ---------------------------------------------------------------------------
-# script entry point: only runs when this file is executed directly
+# script entry point
 # ---------------------------------------------------------------------------
 
 def main():

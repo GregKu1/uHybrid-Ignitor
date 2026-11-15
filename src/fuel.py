@@ -2,10 +2,10 @@ from orifice import orifice_mdot
 from combustion import create_cea_object, run_design
 import numpy as np
 
-Pc = 5
+Pc = 3
 D_orifice = 0.5e-3
 Cd_orifice = 0.8
-T_tank = 273.15+5
+T_tank = 273.15+15
 rho_ABS = 1040
 dt = 1e-3
 OD = 20e-3
@@ -20,7 +20,7 @@ results = run_design(cea, Pc, D_orifice, 0.8, T_tank)
 mdot_ox = results["mdot_ox"]
 mdot_fuel = results["mdot_f"]
 
-d0 = 10e-3
+d0 = 8e-3
 G0 = 4 * mdot_ox / (np.pi*d0**2)
 
 r0 =  a * G0**n

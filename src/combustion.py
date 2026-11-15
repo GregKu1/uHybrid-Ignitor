@@ -95,25 +95,30 @@ def build_species_fractions(species_mass_fractions):
 
 
 # ---------------------------------------------------------------------------
-# main calculation: returns everything in a dict instead of leaving globals
+# main calculation
 # ---------------------------------------------------------------------------
 
-def run_design(cea, Pc, D_orifice, Cd_orifice, T_ambient, OF_start=2, OF_stop=10, OF_step=0.1):
+def run_design(cea, Pc, D_orifice, Cd_orifice, T_ambient, c_star_eta=0.8, Cd_throat=0.6, OF_start=2, OF_stop=10, OF_step=0.1):
     OF = np.arange(OF_start, OF_stop, OF_step)
 
     T_comb = np.array([sweep_T_comb(cea, MR, Pc) for MR in OF])
     C_star = np.array([sweep_C_star(cea, MR, Pc) for MR in OF])
     species_mass_fractions = [sweep_species(cea, MR, Pc) for MR in OF]
 
-    idx_C_star_max = np.argmax(C_star)
-    C_star_max = C_star[idx_C_star_max]
-    T = T_comb[idx_C_star_max]
-    design_OF = OF[idx_C_star_max]
+    idx_c_star_max = np.argmax(C_star)
+    c_star_max = C_star[idx_c_star_max]
+    T = T_comb[idx_c_star_max]
+    design_OF = OF[idx_c_star_max]
 
     mdot_ox, _ = orifice_mdot(Pc_bar=Pc, T_tank=T_ambient, D=D_orifice, Cd=Cd_orifice)
     mdot_f = mdot_ox / design_OF
 
     P_kW = (mdot_ox + mdot_f) * h_sensible(cea, Pc, design_OF) / 1e3
+
+    mdot_total = mdot_f + mdot_ox
+    c_star_real = c_star_eta * c_star_max
+    At = mdot_total * c_star_real / (Cd_throat * Pc*1e5)
+    Dt = np.sqrt(4*At/np.pi)
 
     species, fractions, major_species = build_species_fractions(species_mass_fractions)
 
@@ -123,8 +128,8 @@ def run_design(cea, Pc, D_orifice, Cd_orifice, T_ambient, OF_start=2, OF_stop=10
         "T_comb": T_comb,
         "C_star": C_star,
         "species_mass_fractions": species_mass_fractions,
-        "idx_C_star_max": idx_C_star_max,
-        "C_star_max": C_star_max,
+        "idx_c_star_max": idx_c_star_max,
+        "c_star_max": c_star_max,
         "T": T,
         "design_OF": design_OF,
         "mdot_ox": mdot_ox,
@@ -133,6 +138,8 @@ def run_design(cea, Pc, D_orifice, Cd_orifice, T_ambient, OF_start=2, OF_stop=10
         "species": species,
         "fractions": fractions,
         "major_species": major_species,
+        "At": At,
+        "Dt": Dt
     }
     return results
 
@@ -142,27 +149,30 @@ def run_design(cea, Pc, D_orifice, Cd_orifice, T_ambient, OF_start=2, OF_stop=10
 # ---------------------------------------------------------------------------
 
 def print_results(results):
-    C_star_max = results["C_star_max"]
-    T = results["T"]
-    design_OF = results["design_OF"]
-    P_kW = results["P_kW"]
+    # c_star_max = results["c_star_max"]
+    # T = results["T"]
+    # design_OF = results["design_OF"]
+    # P_kW = results["P_kW"]
 
-    print(f"maximum c* = {C_star_max:.2f} m/s , combustion temperature = {T:.2f} K at OF = {design_OF:.2f}")
-    print(f"power output = {P_kW:.2f} kW")
+    # print(f"maximum c* = {c_star_max:.2f} m/s , combustion temperature = {T:.2f} K at OF = {design_OF:.2f}")
+    # print(f"power output = {P_kW:.2f} kW")
+    wanted = ["Pc", "c_star_max", "T", "design_OF", "mdot_ox", "mdot_f", "P_kW", "At", "Dt"]
+    for k in wanted:
+        print(f"{k} = {results[k]:.7f}")
 
 
 def plot_results(results):
     OF = results["OF"]
     C_star = results["C_star"]
     T_comb = results["T_comb"]
-    idx_C_star_max = results["idx_C_star_max"]
+    idx_c_star_max = results["idx_c_star_max"]
     major_species = results["major_species"]
     fractions = results["fractions"]
 
     fig, (top, bottom) = plt.subplots(2, 1, sharex=True, figsize=(9, 8),
                                       layout="constrained")
     top.plot(OF, C_star, color="tab:blue")
-    top.axvline(OF[idx_C_star_max], linestyle="dashed", color="black")
+    top.axvline(OF[idx_c_star_max], linestyle="dashed", color="black")
     top.set_ylabel("c* [m/s]", color="tab:blue")
     top2 = top.twinx()
     top2.plot(OF, T_comb, color="tab:orange")
@@ -170,7 +180,7 @@ def plot_results(results):
 
     for c in major_species:
         bottom.plot(OF, fractions[c], label=c.lstrip("*"))
-    bottom.axvline(OF[idx_C_star_max], linestyle="dashed", color="black")
+    bottom.axvline(OF[idx_c_star_max], linestyle="dashed", color="black")
     bottom.set_xlabel("O/F")
     bottom.set_ylabel("chamber mass fraction")
     bottom.legend(loc="center left", bbox_to_anchor=(1.0, 0.5))
@@ -179,14 +189,14 @@ def plot_results(results):
 
 
 # ---------------------------------------------------------------------------
-# script entry point: only runs when this file is executed directly
+# script entry point
 # ---------------------------------------------------------------------------
 
 def main():
-    Pc = 5
+    Pc = 3
     D_orifice = 0.5e-3
     Cd_orifice = 0.8
-    T_ambient = 273.15+20
+    T_ambient = 273.15+15
 
     cea = create_cea_object()
     results = run_design(cea, Pc, D_orifice, Cd_orifice, T_ambient)
