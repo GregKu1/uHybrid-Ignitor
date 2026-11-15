@@ -1,0 +1,19 @@
+[project]
+name = "uhybrid"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "GregKu1", email = "grigkurnosov@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "coolprop>=8.0.0",
+    "matplotlib>=3.11.2",
+    "pyqt6>=6.12.1",
+    "rocketcea>=1.2.3",
+]
+
+[project.scripts]
+uhybrid = "uhybrid:main"
+
